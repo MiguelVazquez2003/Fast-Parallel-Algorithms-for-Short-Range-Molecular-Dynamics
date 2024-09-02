@@ -298,9 +298,23 @@ en las rutinas de fuerza en los archivos lj[afs].f.
 Esto se debe a que en el primer caso el compilador Cray no almacena un
 temporal y realiza 2 divisiones.
 
+Pasos para ejecutar y visualizar la simulación:
 
+ 1. Guardar el archivo `lj.in`
+Asegúrate de guardar los cambios en el archivo `lj.in`.
 
-### 4. Visualizar los resultados con OVITO:
+ 2. Ejecutar LAMMPS:
+
+1. Abre una terminal (PowerShell, cmd, o MSYS2).
+
+2. Navega al directorio donde se encuentra tu archivo `lj.in`:
+   ```sh
+   cd ruta/al/directorio
+
+3. Ejecuta LAMMPS con el archivo de entrada:
+lmp_serial -in lj.in
+
+ 4. Visualizar los resultados con OVITO:
 Abre OVITO.
 Ve a File > Load File y selecciona el archivo dump.lj.
 Usa las herramientas de OVITO para visualizar la trayectoria de los átomos, analizar las propiedades de los materiales y crear animaciones.

@@ -1,0 +1,76 @@
+Variable definitions for LJA -- atom-decomposition
+
+      Parameters:
+
+namax			max # of total atoms
+npmax			max # of owned atoms
+nfmax			max # of forces (=namax for Newton's 3rd law)
+					(=npmax otherwise)
+nsmax			size of tmp forces (=namax for Newton's 3rd law)
+					   (=1 otherwise)
+nnmax			max # of neighbors per owned atom
+nbmax			max # of total neighbor bins
+ntmax			max # of thermodynamic calls
+
+      Inputs:
+
+dtstar			timestep (in reduced units)
+ibin			binning flag - user-specified or default
+ineigh			neighbor flag - N^2 or binning
+inewt			Newton flag - Newton's 3rd law in neighboring or not
+iseed			random number seed
+n[xyz]size		# of unit cells (fcc) in each dimension
+nbin[xyz]		# of neighbor bins in each dimension
+nneigh			reneighbor every this many steps
+nstat			status calculation every this many steps
+ntimes			# of timesteps
+rc			inner force cutoff (in reduced units)
+rhostar			requested density (in reduced units)
+rs			neighbor cutoff (in reduced units)
+tstar			requested temperature (in reduced units)
+
+      Variables:
+
+alat			lattice constant
+bin(namax)		linked list pointers from one atom to next in bin
+binpnt(nbmax)		pointers to 1st atom in each bin
+binsize[xyz]		neighbor bin size in each dimension
+conarr(ntmax)		conservation of energy
+cutsq1			inner cutoff distance squared
+cutsq2			outer cutoff distance squared
+dt			timestep (in program units)
+dtforce			timestep for velocity update with an extra factor
+engarr(ntmax)		potential energy (in reduced units)
+enginit			total energy at time 0
+f(3,namax)		forces on my (or all) atoms (if Newton's 3rd law)
+ftmp(3,(namax+1)/2)	summation vector for forces for Newton's 3rd law
+ierrorflag		error condition flag
+mneigh			# of times neighbor routine called
+mstat			# of times status routine called
+natoms			total # of atoms
+ncube			dimension of hypercube
+neighmax		maximum # of neighbor
+nend			where my atoms end
+nlist(npmax*nnmax+nnmax) neighbor lists of my atoms
+nlocal			# of atoms I own
+nnlist(npmax+1)		pointers to start of neighbor lists of my atoms
+node			my node #
+nprocs			total # of processors
+nstart			where my atoms start
+offset(3,14)		offsets in each dimension of 14 neighbor bins
+prsarr(ntmax)		pressure (in reduced units)
+sigma			LJ sigma (in program units)
+sigsq			sigma squared
+time_comm		time spent in communication
+time_force		time spent in force routine
+time_neigh		time spent in neighbor routine
+time_total		total time for run
+tmparr(ntmax)		temperature (in reduced units)
+v(3,npmax)		velocities of my atoms
+vec[12345](10)		storage vectors for atom position communication
+vold(3,npmax)		old velocities of my atoms
+x(3,namax)		positions of all atoms
+x[yz]mc			box size minus inner cutoff
+x[yz]ms			box size minus outer cutoff
+x[yz]prd		box size in each dimension (centered on 0.0)
+x[yz]prd2		box edge in each dimension

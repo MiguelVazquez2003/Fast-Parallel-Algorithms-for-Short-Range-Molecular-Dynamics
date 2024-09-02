@@ -1,0 +1,636 @@
+/* -------------------------------------------------------------------------
+
+      big_read_write
+
+Big handshook read/write to another processor
+
+      Input:
+
+data = address of data to read/write
+n = # of bytes in message (known by both sender and receiver)
+idest = node to write to
+isrc = node to read from
+
+      Output:
+
+none
+
+      Comment:
+
+only needed on simulator and nCUBE
+assumes big_read/big_write calls are paired up
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      broadcast
+
+Broadcast data from node 0 to all other processors
+
+      Input:
+
+data = starting address of data to be sent/recv on each processor
+n = # of bytes in data (ALL processors must know this value)
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+data = copy of node 0's data on every processor
+
+      Comment:
+
+nCUBE and Simulator handshake large messages, Intel machines do not
+by forcing ALL processors to know n ahead of time, all reads are of
+  exactly the correct # of bytes (never a large dummy value)
+T3D version also has broadcastc for doing character variables
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      exit
+
+Cleanly stop this processor
+
+      Input:
+
+i = 0 (dummy parameter)
+
+      Output:
+
+none
+
+      Comment:
+
+nCUBE is the only machine without an exit() subroutine
+this converts exit -> stop
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      expand
+
+Expand a real*4 or integer vector (recursive doubling) across all processors
+
+      Input:
+
+vec = starting address of full vector
+vec1(ncube) = starting indices of messages to send (as 4-byte 1-d vector)
+vec2(ncube) = length (in bytes) of messages to send
+vec3(ncube) = starting indices of recv messages (as 4-byte 1-d vector)
+vec4(ncube) = length (in bytes) of messages to receive
+vec5(ncube) = actual node # of my hypercube partner for each recursion level
+node   = which piece of the vector I own (0 to nprocs-1)
+         (not necessarily my node #)
+nprocs = # of pieces vector is split into
+         (not necessarily total # of processors)
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+vec = full copy of vector on every processor
+
+      Comment:
+
+will work for real*4 or integer vector since vec is only used as address
+if cube is full -> standard logarithmic exchange
+for nCUBE swap, send -1 as 1st argument (NOT node, since potentially
+  self <> node and true self-node is not known) since it is expecting
+  true node # - in this case we know ipartner <> self, so -1 forces swap
+  to always do actual exchange
+for Gamma csend, use mynode() for message type (NOT node) since only thing
+  receiver knows for a matching type is ipartner
+T3D uses 8-byte integer and real
+
+special case for non-power-of-2:
+only do exchange if partner node exists
+3-condition if test sees if I am in bottom half of a sub-cube 
+  whose top half is partially filled with nodes
+if so --> do broadcast within half-sub-cube to spread recvd piece,
+  broadcast is over half-sub-cube but some nodes already have info,
+  they enter the broadcast cascade at the proper time via the if tests
+  on nwrites/nreads
+isize = # of nodes in sub-cube
+ihalf = # of nodes in lower half of sub-cube
+isub  = piece # my sub-cube starts on
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      expand_setup
+
+Setup communication parameters for vector expand (or fold) operation
+
+      Input:
+
+nlocal = length of my piece of vector (last dimension)
+nbyte  = # of bytes in one vector value (last dimension)
+ndim   = first dimension(s) of vector
+         e.g. real*8 vec(100)     ->  nbyte = 8, ndim = 1
+              real*8 vec(3,100)   ->  nbyte = 8, ndim = 3
+              real*4 vec(2,3,100) ->  nbyte = 4, ndim = 6
+vec5(ncube) = actual node # of my hypercube partner for each recursion level
+node   = which piece of the vector I own (0 to nprocs-1)
+         (not necessarily my node #)
+nprocs = # of pieces vector is split into
+         (not necessarily total # of processors)
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+ntotal = total size of all pieces on all nodes (last dimension)
+nstart = starting index of my piece of vector (last dimension)
+nend   = ending index of my piece of vector (last dimension)
+vec1(ncube) = starting indices of messages to send (as real*nbyte 1-d vector)
+vec2(ncube) = length (in bytes) of messages to send
+vec3(ncube) = starting indices of recv messages (as real*nbyte 1-d vector)
+vec4(ncube) = length (in bytes) of messages to receive
+
+      Comment:
+
+loop over full cube, even if some nodes don't exist
+exchange dummy messages that tell the length of data that will be sent
+use recvd length to update istart,iend,ilocal bounds of my current piece
+T3D uses 8-byte integer
+
+special case for non-power-of-two:
+only do exchange if partner node exists
+3-condition if test sees if I am in bottom half of a sub-cube 
+  whose top half is partially filled with nodes
+if so --> do broadcast within half-sub-cube to spread recvd jlocal,
+  broadcast is over half-sub-cube but some nodes already have info,
+  they enter the broadcast cascade at the proper time via the if tests
+  on nwrites/nreads
+isize = # of nodes in sub-cube
+ihalf = # of nodes in lower half of sub-cube
+isub  = piece # my sub-cube starts on
+
+at end of loop, nshift is the offset to align complete vector with 1 to ntotal
+adjust vec1,vec2,vec3,vec4 for nshift and size of initial dimensions
+  of data vector
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      fold
+
+Fold a real*4 vector (recursive halving) across all processors
+
+      Input:
+
+vec = starting address of full real*4 vector
+vectmp = real*4 work vector of (at least) length of vec
+vec1(ncube) = starting indices of messages to read (as 4-byte 1-d vector)
+vec2(ncube) = length (in bytes) of messages to read
+vec3(ncube) = starting indices of send messages (as 4-byte 1-d vector)
+vec4(ncube) = length (in bytes) of messages to send
+vec5(ncube) = actual node # of my hypercube partner for each recursion level
+node   = which piece of the vector I own (0 to nprocs-1)
+         (not necessarily my node #)
+nprocs = # of pieces vector is split into
+         (not necessarily total # of processors)
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+vec = my piece of vec summed across all processors
+
+      Comment:
+
+if cube is full -> standard logarithmic exchange
+for nCUBE swap, send -1 as 1st argument (NOT node, since potentially
+  self <> node and true self-node is not known) since it is expecting
+  true node # - in this case we know ipartner <> self, so -1 forces swap
+  to always do actual exchange
+for Gamma csend, use mynode() for message type (NOT node) since only thing
+  receiver knows for a matching type is ipartner
+T3D uses 8-byte integer and real
+
+special case for non-power-of-2:
+3-condition if test sees if I am in bottom half of a sub-cube 
+  whose top half is partially filled with nodes
+if so --> do sum within half-sub-cube to first sum piece to be sent,
+  sum is over half-sub-cube but some nodes already have info,
+  stop the summation cascade at the proper time via the if tests
+  on nwrites/nreads
+only do exchange if partner node exists
+isize = # of nodes in sub-cube
+ihalf = # of nodes in lower half of sub-cube
+isub  = piece # my sub-cube starts on
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      gray
+
+Gray-code/sequential mapping and unmapping
+
+      Input:
+
+functions called with sequential or Gray order
+
+      Output:
+
+functions return Gray or sequential order
+
+      Comment:
+
+only useful for hypercubes
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      merge_i
+
+Sum an integer value across all processors
+
+      Input:
+
+ivalue = integer value
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+ivalue = sum of ivalue across all processsors
+T3D uses 8-byte integers
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      merge_imax
+
+Find maximum of an integer value across all processors
+
+      Input:
+
+ivalue = integer value
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+ivalue = maximum ivalue across all processsors
+T3D uses 8-byte integers
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      merge_iv
+
+Sum a vector of integer values across all processors (element by element)
+
+      Input:
+
+vec = vector of integer values
+vectmp = integer work vector at least as long as vec
+n = # of values
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+vec = sum of vec across all processsors (element by element)
+T3D uses 8-byte integers
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      merge_r
+
+Sum a real*4 value across all processors
+
+      Input:
+
+value = real*4 value
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+value = sum of value across all processsors
+T3D uses 8-byte real
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      merge_r8
+
+Sum a real*8 value across all processors
+
+      Input:
+
+value = real*8 value
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+value = sum of value across all processsors
+
+-------------------------------------------------------------------------- */
+
+
+/* -------------------------------------------------------------------------
+
+      merge_r8max
+
+Find maximum of a real*8 value across all processors
+
+      Input:
+
+value = real*8 value
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+value = maximum value across all processsors
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      merge_r8min
+
+Find minimum of a real*8 value across all processors
+
+      Input:
+
+value = real*8 value
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+value = minimum value across all processsors
+
+-------------------------------------------------------------------------- */
+   
+/* -------------------------------------------------------------------------
+
+      mesh_3d
+
+Map all processors into a periodic 3-d mesh
+
+      Input:
+
+nx,ny,nz = dimensions of processor mesh in all 3 directions
+node = processor id #
+
+      Output:
+
+ix,iy,iz = position of processor in logical 3-d mesh
+           (0 to nx-1, 0 to ny-1, 0 to nz-1)
+iwest,ieast,isouth,inorth,iup,idown = processor id #'s of 6 neighbors
+
+      Comment:
+
+on hypercubes, use a Gray-coded mapping
+on meshes, use a normal calendar mapping
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      nread_nwrite
+
+Convert nCUBE nread/nwrite into calls for other machines
+
+      Input:
+
+standard nCUBE nread/nwrite parameters
+
+      Output:
+
+nread = # of bytes actually read
+nwrite = 0 (assumes no error)
+
+      Comment:
+
+on Sun, converts to no-op, nread=nwrite=0 always returned
+on Sun, no copying is done, use swap if want different behavior
+on Intel, converts to crecv/csend, max_type is set to nCUBE max
+on Intel, crecv will print an error and stop if received message
+  is longer than isize (unlike what nCUBE does)
+Intel max is 999,999,999 so this works for at least 16384 Intel nodes
+T3D converts to pvm calls, iactual is used to return correct # bytes read
+T3D version also has nreadc/nwritec for doing character variables
+nCUBE type = -1 or node = -1 parameters are NOT supported on Intel and T3D
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      split_scalar
+
+Split items across a group of processors so that each owns a contiguous piece
+
+      Input:
+
+n = # of items
+node = which piece I own (0 to nprocs-1)
+       (not necessarily my node id #)
+nprocs = # of pieces to split into
+         (not necessarily total # of processors)
+
+      Output:
+
+nlocal = # of items I own
+nstart = starting index # of my piece (1 to n)
+nend = ending index # of my piece (1 to n)
+
+      Comment:
+
+computation of piece bounds is done cleanly so that any processor can compute
+  bounds of any other processor's piece
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      stats_r8
+
+Find ave/min/max and histogram of one or more real*8 values from all processors
+
+      Input:
+
+data = vector of real*8 data values for this processor
+n = # of values from this processor (can be 1 -> data is a scalar)
+histo = integer histogram vector of length (at least) nhisto
+histotmp = integer histogram work vector of length (at least) nhisto
+nhisto = # of bins to histogram into
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+ave = average value across all processors
+xmax = maximum value across all processors
+xmin = minimum value across all processors
+histo = histogram of all data values across all processors
+
+      Comment:
+
+histogram is binned into nhisto bins between min and max values
+processors find local ave/min/max, then exchange to find global values,
+  then histogram their own values, and sum histo vector across all processors
+make sure ave,xmax,xmin are real*8 values in calling routine
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      swap
+
+Send a message to and receive a message from 2 other (or same) processors
+
+      Input:
+
+node = processor id #
+sbuf = address of message to send
+islen = # of bytes to send
+isnode = processor id # to send to
+rbuf = address of location to put received message
+irlen = # of bytes I will receive (iunknownflag = 0)
+        max # of bytes rbuf can hold (iunknownflag = 1)
+irnode = processor id # to receive from
+iunknownflag = 0/1 (0 means I know a priori how many bytes I will receive)
+                (1 means I don't)
+ihandflag = 0/1 (0 means send all data as one big message)
+                (1 means handshake messages on Simulator/nCUBE - others ignore)
+isyncflag = 0/1 (0 means don't synchonize at end of message)
+                (1 means do - irrelevant on Simulator/nCUBE if ihandflag = 1)
+icopyflag = 0/1 (0 means don't copy message from sbuf to rbuf if isnode = node)
+                (1 means do)
+
+      Output:
+
+rbuf = filled with received message
+irlen = actual size of received message (only set if iunknownflag = 1)
+        if message is too large, irlen is set to portion actually received
+        (see comments below)
+
+      Comment:
+
+detects whether is exchanging with itself by testing for node = isnode,
+  thus some routines (expand,fold) call swap with node = -1 when they
+  don't know true self-node #, but do know an exchange should be done
+although isnode and irnode can be different, this routine assumes
+  nodes are paired up at some level, else deadlock will result
+note that handshaking when isnode <> irnode essentially syncs
+  entire group of nodes at each stage of handshook message -
+  this may not be desirable - alternative is to pair up all nodes
+  (in mapping done in caller program) so that isnode = irnode
+on all machines, if copied message is too large for buffer (icopyflag = 1,
+  iunknownflag = 1), portion of message that fits in buffer will be 
+  returned and irlen will be set to that length - caller program 
+  must catch error
+on nCUBE, if received message is too large for buffer (iunknownflag = 1),
+  portion of message that fits in buffer will be returned and irlen
+  will be set to that length - caller program must catch error - 
+  this is because there is no way to trap the error on the nCUBE
+on Intel, if received message is too large for buffer (iunknownflag = 1),
+  the nread/crecv will bomb and print an error message - call to swap will
+  never return
+on nCUBE, if (iunknownflag = 1,ihandflag = 1) AND the incoming message is
+  too large for buffer, then the swap routine will likely hang because the
+  receiver will think it is done while the sender still wants to send - don't
+  see any way around this because nCUBE does not detect when a received
+  message was too long - so don't use these options together if message
+  can possibly be too long
+T3D uses 8-byte integers to do self-copy
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      synchro
+
+Synchonize all processors
+
+      Input:
+
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube (perfect or next larger)
+
+      Output:
+
+none
+
+      Comment:
+
+no processor will continue past this point in code until all processors
+  have reached this point
+uses "unique" message type to accomplish this
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      timer
+
+Return elapsed CPU time
+
+      Input:
+
+none
+
+      Output:
+
+time = double precision CPU time in seconds
+
+      Comment:
+
+compute elapsed time by bracketing code with 2 calls and
+  differencing the results
+
+      Performance:
+
+CPU seconds to call 1 million times
+
+Sun:    4.18 (but also 22.0 sec system time)
+nCUBE:  34.7
+SunMos: 1.99
+
+-------------------------------------------------------------------------- */
+
+/* -------------------------------------------------------------------------
+
+      whatami
+
+Return parallel info
+
+      Input:
+
+none
+
+      Output:
+
+node = processor id #
+nprocs = total # of processors
+ncube = dimension of hypercube
+        if not a perfect power-of-two, return next larger power-of-two
+
+-------------------------------------------------------------------------- */

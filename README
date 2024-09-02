@@ -1,0 +1,299 @@
+c Algoritmos Paralelos de Dinámica Molecular
+c
+c Autor: Steve Plimpton
+c   (505) 845-7873, sjplimp@cs.sandia.gov
+c   Dept 1421, MS 1111, Sandia National Labs, Albuquerque, NM  87185-1111
+c
+c Última modificación:  30 de abril de 1996
+c
+
+Este directorio contiene 3 códigos de referencia de Lennard-Jones que
+realizan la misma física, pero utilizan diferentes estrategias de
+paralelización. Los algoritmos utilizados por los 3 códigos, la
+especificación de referencia y los resultados de rendimiento en
+varias máquinas se discuten en el artículo
+
+S. J. Plimpton, "Algoritmos Paralelos Rápidos para Dinámica Molecular
+de Corto Alcance", J Computational Physics, vol 117, (marzo 1995) p 1-19.
+
+
+Steve
+
+----------------------------------------------------------------------------
+
+Archivos en este directorio:
+
+(Si no descargaste los 3 códigos, no tendrás todos estos archivos.)
+
+lja.f		Código fuente F77 para el código de descomposición de átomos
+ljf.f		Código fuente F77 para el código de descomposición de fuerzas
+ljs.f		Código fuente F77 para el código de descomposición espacial
+
+lj[afs].h	Archivos de inclusión para cada uno de los 3 códigos
+
+parlib[afs]_machine.f
+
+        Código fuente F77 para las rutinas paralelas utilizadas por
+        cada uno de los 3 códigos en cada máquina
+        unix = Estación de trabajo UNIX
+        ncube = nCUBE 2
+        gamma = Intel iPSC/860
+        osf = Intel Paragon ejecutando OSF
+        mos = Intel Paragon ejecutando SUNMOS
+        t3d = Cray T3D
+        mpi = Implementación portátil de MPI
+
+Crib_lj[asf]	Documentación de variables para cada uno de los 3 códigos
+Crib_parlib	Documentación de subrutinas para las rutinas paralelas
+        utilizadas por todos los códigos
+
+lj.out.example	Archivo de salida de ejemplo
+
+Makefile	Makefile para los 3 códigos en todas las máquinas
+Makefile_lower	Makefile genérico de bajo nivel utilizado para algunos objetivos
+
+README          este archivo
+
+----------------------------------------------------------------------------
+
+Compilando los códigos:
+
+(NOTA IMPORTANTE para usuarios de Cray T3D: Debido a que el T3D solo
+soporta reales e enteros de 8 bytes, DEBES hacer algunos cambios menores
+en los archivos fuente para convertirlos a doble precisión antes de
+compilar una versión para T3D. Consulta la sección sobre doble precisión
+a continuación.)
+
+El Makefile está configurado para crear versiones de lja, ljf y ljs para
+varias máquinas. Escribe "make" para ver una lista de objetivos
+soportados. Escribiendo "make prefix.suffix" donde prefix = a, f, o s
+(para los diferentes tipos de descomposición) y suffix es un tipo de
+máquina, se producirá un ejecutable llamado "ljprefix_target", como
+ljf_unix o ljs_osf.
+
+El Makefile funciona en muchas plataformas Unix, pero puede ser
+incompatible con algunas, ya que el comando "make" no es muy estándar.
+Si está disponible en tu sistema, una alternativa es usar el comando
+Gnu make "gmake", que es estándar. Si no, habla con un experto local
+en make, o contáctame y tal vez pueda ayudarte a modificar el Makefile
+para tu máquina.
+
+Cuando se ejecuta make para un objetivo particular, creará un subdirectorio
+Obj_suffix para almacenar archivos *.o específicos de la máquina. Esto es
+para evitar que los archivos *.o generados para diferentes máquinas se
+mezclen.
+
+Necesitarás editar la sección "Definiciones específicas de la máquina"
+del Makefile para tu entorno. Específicamente, probablemente necesitarás
+especificar las ubicaciones de los compiladores y el comando "size". Los
+niveles de optimización son los que he encontrado generalmente más rápidos
+en las diversas máquinas. También puede que necesites agregar bibliotecas
+específicas para tu máquina en la variable SYSLIB. Por ejemplo, la versión
+MPI requerirá una biblioteca MPI nativa para ser vinculada con el código.
+
+Compilo mis versiones Unix para una máquina Sun SPARC. Es posible que en
+otras estaciones de trabajo Unix (IBM, SGI, HP) encuentres algunos problemas
+con el compilador. Por ejemplo, la rutina de temporización en
+parlib[afs]_unix.f llama a "etime", que no todas las bibliotecas del sistema
+Unix parecen soportar.
+
+Las versiones Unix de estos 3 códigos son códigos de un solo procesador que
+pueden ser compilados para cualquier procesador que ejecute UNIX - por
+ejemplo, estaciones de trabajo, Cray Y-MP, Cray C90, etc. Sin embargo, estos
+códigos no están optimizados para el procesamiento vectorial y RISC que
+soportan esas máquinas. Estos no son los códigos que produjeron los tiempos
+de Cray Y-MP y C90 discutidos en el artículo de JCP. Ese es un código de un
+solo procesador que implementa la misma física que estos 3 códigos pero
+utiliza diferentes estructuras de datos y bucles para aprovechar el
+procesamiento vectorial.
+
+Al crear versiones para Cray T3D, ten en cuenta que los archivos
+parlib*_t3d.f tienen rutinas que hacen llamadas a PVM. Incluyen un archivo
+de encabezado PVM específico que puede ser diferente en tu sistema.
+
+El Makefile está actualmente configurado para crear una versión MPI para
+el Intel Paragon ejecutando SUNMOS. Para crear una versión MPI para otra
+plataforma, necesitarás editar la configuración mpi_DEFS en el Makefile.
+También puede que necesites editar los archivos parlib*_mpi.f para usar
+los archivos de inclusión y rutinas de temporización correctos para tu
+máquina MPI.
+
+----------------------------------------------------------------------------
+
+Ejecutando los códigos:
+
+Los 3 códigos leen el archivo lj.in que tiene varias opciones como
+densidad de átomos, distancias de corte y frecuencia de la lista de
+vecinos. Puedes modificar estas opciones como desees; las configuraciones
+actuales son para el problema de referencia descrito en el artículo
+mencionado anteriormente - un punto de estado líquido de LJ. Ten en cuenta
+que la temperatura en el archivo es realmente la energía cinética inicial;
+el sistema se equilibrará a aproximadamente la mitad de esa temperatura
+dentro de unos cien pasos, ya que comienza con una red fcc (mínimo de
+energía potencial).
+
+Los códigos también solicitan varias entradas que, para fines de referencia,
+encuentro más conveniente establecer sobre la marcha. Dependiendo del código
+y tus elecciones, no verás todas las solicitudes en una sola ejecución.
+
+(1) Átomos: nx,ny,nz
+
+Número de celdas unitarias cúbicas en cada dimensión. Hay 4 átomos/celda
+unitaria en la red fcc inicial, por lo que especificar "5 5 5" es una
+ejecución con 500 átomos.
+
+(2) Número de pasos de tiempo
+
+(3) Vecindad: (0) N^2 (1) Binned
+
+Crear listas de vecinos mediante una búsqueda de todos los pares (opción N^2)
+o agrupando primero los átomos. Cuál es más rápido depende del tamaño del
+problema, el número de procesadores y la elección de algoritmos paralelos.
+
+(4) Especificar agrupamiento: (0) No (1) Sí
+
+El programa elegirá el tamaño del grupo por ti (opción 0) según el corte de
+la lista de vecinos o puedes anularlo (opción 1).
+
+(5) Grupos en cada dirección: x,y,z
+
+Tú eliges cuántos grupos de vecinos tener en cada dimensión del dominio
+global. La razón por la que puse esta opción es que para el problema de
+referencia resulta que si las celdas unitarias se especifican como un
+múltiplo de 5, entonces los grupos de vecinos (con un corte de 2.8 sigma)
+resultan ser justo menos de un múltiplo de 3. Por ejemplo, si ejecutas un
+problema de 10x10x10 de 4000 átomos, el programa quiere poner 5.999 grupos
+de vecinos en cada dimensión, lo que se redondea a 5 y corre un poco más
+lento. Así que para las referencias especifico 6x6x6 grupos en este caso.
+
+(6) Tercera ley de Newton: (0) No (1) Sí (2) Híbrido
+
+Los códigos lja y ljf pueden ahorrar cálculo aprovechando la tercera ley de
+Newton a expensas de un cálculo adicional. Cuál es más rápido depende del
+tamaño del problema, el número de procesadores, etc. El código lja también
+tiene una opción híbrida que a veces puede ser más rápida - consulta la
+documentación al principio de la rutina neighbor4 en lja.f
+
+(7) Transposición: (0) No (1) Sí
+
+El código de descomposición de fuerzas ljf tiene una opción más antigua que
+requiere transponer una parte de la matriz de fuerzas (consulta el artículo).
+Siempre es más rápido no hacer esto, pero la opción está ahí por razones
+históricas.
+
+(8) Especificar cuadrícula de procesadores: (0) No (1) Sí
+
+Los códigos ljf y ljs te permiten especificar cómo mapear los procesadores
+a la matriz de fuerzas (ljf) o al dominio físico 3D (ljs). Esto es
+necesario si estás ejecutando en un número no potencia de 2 de procesadores
+y puede ser útil con ljs si tu dominio físico global no es cúbico.
+
+(9) Cuadrícula de procesadores: numrow,numcol
+
+Si eliges especificar la cuadrícula de procesadores en el código ljf, le
+dices al código la matriz de "fila por columna" de procesadores para mapear
+a la matriz de fuerzas (consulta el artículo). Una matriz casi cuadrada es
+más rápida. También puedes usar esto para enmascarar procesadores. Por
+ejemplo, si ejecutas en 105 procesadores, puedes especificar una cuadrícula
+de 10x10 y 5 procesadores no serán utilizados.
+
+(10) Cuadrícula de procesadores: x,y,z
+
+Si eliges especificar la cuadrícula de procesadores en el código ljs, le
+dices al código la matriz de "x por y por z" de procesadores para mapear al
+dominio físico (consulta el artículo). El código corre más rápido cuando
+los subdominios de procesadores son lo más cúbicos posible. Así que si
+estás ejecutando un problema de 20x4x20 (6400 átomos) en 32 procesadores,
+puedes querer elegir una cuadrícula de procesadores de 4x2x4 en lugar de la
+cuadrícula de 2x4x4 que el código te dará por defecto.
+
+Después de las solicitudes, el código hará alguna configuración y luego
+comenzará la dinámica de pasos de tiempo. No obtendrás ninguna otra salida
+hasta que el bucle de pasos de tiempo termine.
+
+Si obtienes un mensaje de error sobre "aumentar" algo, significa que tus
+arreglos no están asignados lo suficientemente grandes. Necesitas modificar
+una declaración de parámetro en el archivo lj*.h y recompilar. Algunos de
+estos errores se detectan en la configuración, otros (como el desbordamiento
+de la lista de vecinos) pueden no detectarse hasta la mitad de una ejecución.
+Cuando esto sucede, deberías obtener un mensaje de error en tu pantalla, y
+el programa se detendrá de manera ordenada (si todos los procesadores
+incurrieron en el mismo error) o se colgará.
+
+He tratado de ser bastante cuidadoso al detectar errores de desbordamiento
+de memoria. Si los códigos alguna vez se bloquean o cuelgan sin escupir un
+mensaje de error primero debido a problemas algorítmicos/paralelismo (en
+oposición a problemas de física, como un paso de tiempo demasiado grande o
+poner 2 átomos uno encima del otro), probablemente sea un error, así que
+házmelo saber.
+
+Cuando la ejecución termina, obtienes alguna información de temporización
+en la pantalla y una salida más completa en el archivo lj.out que incluye
+información termodinámica y estadísticas de uso de memoria. La última
+columna de la salida termodinámica es un monitor de conservación de energía
+que debería estar cerca de 1.0 (relación de la energía total actual a la
+energía total inicial). En realidad, debido a la convención de leapfrog de
+que las velocidades están en el medio paso, la energía inicial es una
+estimación, por lo que la conservación de energía generalmente es mejor
+entre 2 pasos de tiempo intermedios que en comparación con la estimación
+inicial de tiempo=0.
+
+----------------------------------------------------------------------------
+
+Entendiendo los códigos:
+
+Desafortunadamente, no he tenido el tiempo o la inclinación para comentar
+los códigos en mucho detalle. Y los códigos están bastante optimizados como
+tienden a ser los benchmarks. Espero que encuentres útiles los archivos
+Crib y que mi estilo de codificación no sea demasiado opaco. El artículo de
+J Comp Phys es la mejor visión general de alto nivel de lo que cada uno de
+los 3 códigos está haciendo en cuanto a paralelismo.
+
+En el lado positivo, si no entiendes algo o estás tratando de modificar
+alguna sección, llámame o envíame un correo electrónico al respecto y estaré
+encantado de explicar (o confundir) las cosas más a fondo.
+
+----------------------------------------------------------------------------
+
+Doble precisión:
+
+Todos los códigos están escritos en precisión simple (real de 32 bits).
+Estos son los cambios en los archivos *.h y *.f que necesitas hacer para
+convertirlos a doble precisión (real de 64 bits).
+
+*** cambios en lj[afs].h
+
+(1) implicit real*4 -> implicit real*8
+(2) real*4 -> real*8 en todas las declaraciones de variables
+(3) nbyte=4 -> nbyte=8 en declaraciones de parámetros
+(4) ibyte=4 -> ibyte=8 (haz este cambio SOLO para la versión T3D)
+
+*** cambios en lj[afs].f
+
+(1) real*4 function -> real*8 function
+
+*** cambios en parlib[afs]_*.f (ya hecho en parlib[afs]_t3d.f)
+
+(1) real*4 -> real*8 en todas las declaraciones de variables locales
+(2) nbyte=4 -> nbyte=8 en declaraciones de parámetros
+
+Nota adicional de optimización para la versión Cray T3D:
+
+La última vez que lo comprobé, obtienes aproximadamente un 12% de aumento
+de velocidad si reemplazas las líneas
+
+sr2 = sigsq/rsq
+sr6 = sr2*sr2*sr2
+tmp = sr6*(sr6-0.5)/rsq
+
+por
+
+recip = 1.0/rsq
+sr2 = sigsq*recip
+sr6 = sr2*sr2*sr2
+tmp = sr6*(sr6-0.5)*recip
+
+en las rutinas de fuerza en los archivos lj[afs].f.
+
+Esto se debe a que en el primer caso el compilador Cray no almacena un
+temporal y realiza 2 divisiones.

@@ -1,0 +1,97 @@
+Variable definitions for LJS -- spatial-decomposition
+
+      Parameters:
+
+namax			max # of owned atoms and nearby atoms
+npmax			max # of owned atoms
+nomax			max # of nearby atoms
+nnmax			max # of neighbors per owned atom
+nbmax			max # of owned bins
+ntmax			max # of thermodynamic calls
+nsmax			max # of swaps to do at each timestep
+nemax			max # of atoms to send to all neighbors (swap list)
+nfmax			max buffer sizes
+
+      Inputs:
+
+dtstar			timestep (in reduced units)
+ibin			binning flag - user-specified or default
+ineigh			neighbor flag - N^2 or binning
+iseed			random number seed
+n[xyz]size		# of unit cells (fcc) in each dimension
+nbin[xyz]		# of global neighbor bins in each dimension
+nneigh			reneighbor every this many steps
+nstat			status calculation every this many steps
+ntimes			# of timesteps
+rc			inner force cutoff (in reduced units)
+rhostar			requested density (in reduced units)
+rs			neighbor cutoff (in reduced units)
+tstar			requested temperature (in reduced units)
+
+      Variables:
+
+alat			lattice constant
+atompnt			pointer to 1st atom in my list
+bin(namax)		linked list pointers from one atom to next in bin
+binpnt(nbmax)		pointer to 1st atom in each bin
+binsize[xyz]		size of bins in each dimension
+border(2,3)		lo/hi boundaries of my box in each dimension
+boundhi(nsmax)		hi slab boundary on atom positions for each swap send
+boundlo(nsmax)		lo slab boundary on atom positions for each swap send
+buf1(nfmax+6)		comm buffer - size is for sending to new node
+buf2(2*nfmax)		comm buffer - size is for 2 receives of buf1
+conarr(ntmax)		energy conservation
+cutsq1			inner cutoff squared
+cutsq2			outer cutoff squared
+dt			timestep (in program units)
+dtforce			timestep for velocity update with extra factor
+engarr(ntmax)		potential energy (in reduced units)
+enginit			total energy at time 0
+f(3,npmax)		forces on my atoms
+freepnt			pointer to 1st free space in list (last one -> 0)
+ierrorflag		error condition flag
+igrid			user specified processor grid flag
+list(npmax)		linked list of local atoms (last one -> npmax+1)
+mbin[xyz]		# of bins in my box (with nearby atoms included)
+mbin[xyz]lo		1st global bin indices (offset) at lower left of my box
+me(3)                   which box I am (0 - npdim-1) in each dimension
+mneigh			# of times neighbor routine called
+mpart(2,3)		node # of neighbor processor in each dimension
+mstat			# of times status routine called
+natoms			total # of atoms owned by all nodes
+ncube			dimension of hypercube
+need(3)			how many boxes away I need atoms from in each dimension
+neighmax		most neighbors every stored in neighbor list
+nexcmax			most atoms ever leaving my box (in one dimension)
+nlist(npmax*nnmax+nnmax) neighbor lists of my atoms
+nlocal			# of atoms I currently own
+nlocalmax		most atoms I ever owned
+nnlist(npmax+1)		pointers to start of neighbor lists for my atoms
+node			my node #
+nother			# of nearby atoms I currently store
+nothermax		most nearby atoms I ever stored
+npdim(3)		# of nodes (boxes) in each dimension
+nprocs			total # of processors
+nslist(nsmax+1)		pointer to where swap list starts for each swap
+nslistmax		biggest size swap list ever reached
+nswap			# of swaps at each timestep
+nswpmax			most atoms ever sent in one swap
+prd(3)                  storage of xprd,yprd,zprd for loop purpose
+prsarr(ntmax)		presssure (in reduced units)
+rpart(nsmax)		node # of who to recv from for each swap
+sigma			LJ sigma (in program units)
+sigsq			sigma squared
+slist(nemax)		swap list of atoms to send out for each swap
+spart(nsmax)		node # of who to send to for each swap
+time_comm		communication time
+time_force		force time
+time_neigh		neighboring time
+time_total		total run time
+tmparr(ntmax)		temperature (in reduced units)
+v(3,npmax)		velocity of my atoms
+vold(3,npmax)		old velocity of my atoms
+x(3,namax)		positions of my atoms and nearby atoms
+x[yz]mc			box size minum inner cutoff
+x[yz]ms			box size minus outer cutoff
+x[yz]prd		box size in all 3 dimensions (centered on 0.0)
+x[yz]prd2		box edges in all 3 dimensions

@@ -1,0 +1,63 @@
+# Archivo de entrada de Lennard-Jones para el benchmark de MD
+
+units lj
+# Define las unidades de simulación como unidades de Lennard-Jones.
+
+atom_style atomic
+# Define el estilo de los átomos como atómico, adecuado para simulaciones de partículas individuales sin estructura interna.
+
+# Definir la caja de simulación
+lattice fcc 0.8442
+# Define una red cúbica centrada en las caras (FCC) con una densidad reducida de 0.8442.
+
+region box block 0 10 0 10 0 10
+# Define una región cúbica de simulación con dimensiones de 10x10x10 en unidades reducidas.
+
+create_box 1 box
+# Crea una caja de simulación en la región definida.
+
+create_atoms 1 box
+# Crea átomos en la caja de simulación.
+
+# Definir masa y velocidad inicial
+mass 1 1.0
+# Define la masa de los átomos como 1.0 en unidades reducidas.
+
+velocity all create 1.444 234985231
+# Asigna velocidades iniciales a los átomos basadas en una temperatura inicial de 1.444 y una semilla aleatoria de 234985231.
+
+# Definir estilo de pares y coeficientes
+pair_style lj/cut 2.8
+# Define el estilo de pares como Lennard-Jones con un corte de 2.8.
+
+pair_coeff 1 1 1.0 1.0 2.5
+# Define los coeficientes de pares para el estilo Lennard-Jones, con parámetros de energía y distancia de 1.0 y un corte de 2.5.
+
+# Configuración de vecinos
+neighbor 0.3 bin
+# Define la distancia de vecindad.
+
+neigh_modify every 20 delay 0 check no
+# Modifica la frecuencia de actualización de vecinos: cada 20 pasos, sin retraso y sin chequeo.
+
+# Definir el fix
+fix 1 all nve
+# Aplica un integrador de velocidad-Verlet (NVE) para la integración de las ecuaciones de movimiento.
+
+timestep 0.00462
+# Define el tamaño del paso de tiempo para la integración.
+
+# Configuración de termodinámica
+thermo 100
+# Define la frecuencia de salida de información termodinámica cada 100 pasos de tiempo.
+
+# Configuración de salida
+dump 1 all atom 100 dump.lj
+# Configura LAMMPS para escribir las posiciones de todos los átomos en un archivo llamado dump.lj cada 100 pasos de tiempo.
+
+dump_modify 1 sort id
+# Asegura que los átomos en el archivo dump estén ordenados por su ID.
+
+# Ejecutar la simulación
+run 10000
+# Ejecuta la simulación por 10000 pasos de tiempo.

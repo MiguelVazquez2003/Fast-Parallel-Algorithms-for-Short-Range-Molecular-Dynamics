@@ -1,0 +1,47 @@
+This is a sample run of lja_unix on my SPARC 2 with the following inputs:
+
+Atoms: nx,ny,nz
+5 5 5
+# of Timesteps
+1000
+Neighboring: (0) N^2 (1) Binned
+0
+Newtons 3rd law: (0) No (1) Yes
+0
+
+The output produced in lj.out is as follows:
+
+Timestep, T*, U*, P*, Conservation:
+  0    1.44400   -7.22587   -5.77899    1.00000
+  100   0.765823   -6.21571  -0.553711    1.00154
+  200   0.775446   -6.23162  -0.676047    1.00186
+  300   0.743676   -6.18471  -0.465447    1.00202
+  400   0.758180   -6.20545  -0.533639    1.00180
+  500   0.725262   -6.15512  -0.201080    1.00159
+  600   0.741419   -6.18120  -0.388246    1.00200
+  700   0.688052   -6.09921    1.00106E-03    1.00157
+  800   0.681482   -6.08819   0.111790    1.00132
+  900   0.731413   -6.16446  -0.204250    1.00162
+  1000   0.712390   -6.13474   -9.71827E-02    1.00136
+Averages: (without timestep 0)
+        0.732314   -6.16604  -0.300681    1.00167
+
+Total time:    254.10999512672 on  1 procs for  500 atoms
+
+ Force time/%:     204.530081      80.4888
+ Neigh time/%:      42.799981      16.8431
+ Comm  time/%:       0.009995       0.0039
+ Other time/%:       6.769938       2.6642
+
+ Force time:     204.5301 ave     204.5301 max     204.5301 min
+  Histogram:    1    0    0    0    0    0    0    0    0    0
+ Neigh time:      42.8000 ave      42.8000 max      42.8000 min
+  Histogram:    1    0    0    0    0    0    0    0    0    0
+ Comm  time:       0.0100 ave       0.0100 max       0.0100 min
+  Histogram:    1    0    0    0    0    0    0    0    0    0
+ Other time:       6.7699 ave       6.7699 max       6.7699 min
+  Histogram:    1    0    0    0    0    0    0    0    0    0
+ Neighs:       37450.0000 ave   37450.0000 max   37450.0000 min
+  Histogram:    1    0    0    0    0    0    0    0    0    0
+
+Max # of neighbors =  39000 out of  40000

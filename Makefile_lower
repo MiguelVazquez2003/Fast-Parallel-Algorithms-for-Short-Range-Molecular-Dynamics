@@ -1,0 +1,32 @@
+# Lower-level Makefile
+#   copied to Obj sub-directory, called by top-level Makefile 
+#   works with "make" command on all Unix machines and with Gnu "gmake"
+
+SHELL = /bin/sh
+.IGNORE:
+
+#
+# Target
+#
+
+$(EXE):	$(OBJ)
+	$(LINK) $(LINKFLAGS) $(OBJ) $(USRLIB) $(SYSLIB) -o $@
+	$(SIZE) $@
+
+#
+# Compilation rules
+#
+
+.f.o:
+	$(F77) $(F77FLAGS) $<
+
+.c.o:
+	$(CC) $(CCFLAGS) $<
+
+#
+# Individual dependencies
+#
+
+lja.o:		lja.h
+ljf.o:		ljf.h
+ljs.o:		ljs.h
